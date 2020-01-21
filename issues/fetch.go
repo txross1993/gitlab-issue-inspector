@@ -41,8 +41,8 @@ type Issue struct {
 
 // Fetch returns the list of issues that have been updated on or after the last known updated timestamp
 // The issues fetched depend on the labels provided for the issue filter
-func Fetch(client *http.Client, labels string, updatedAt string) ([]Issue, error) {
-	b, err := getIssues(client, labels)
+func Fetch(client *http.Client, updatedAt string, labels string) ([]Issue, error) {
+	b, err := getIssues(client, updatedAt, labels)
 
 	if err != nil {
 		return nil, err
@@ -50,16 +50,12 @@ func Fetch(client *http.Client, labels string, updatedAt string) ([]Issue, error
 
 	var issues []Issue
 	err = json.Unmarshal(b, &issues)
-	if err != nil {
-		return nil, err
-	}
-
-	return filterByUpdatedAt(issues, updatedAt)
+	return issues, err
 
 }
 
-func getIssues(client *http.Client, labels string) ([]byte, error) {
-	url := getIssueUrl(labels)
+func getIssues(client *http.Client, updatedAt string, labels string) ([]byte, error) {
+	url := getIssueUrl(updatedAt, labels)
 	req, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
@@ -75,32 +71,21 @@ func getIssues(client *http.Client, labels string) ([]byte, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
-func filterByUpdatedAt(issues []Issue, updatedAt string) ([]Issue, error) {
-	t, err := time.Parse(time.RFC3339, updatedAt)
-	if err != nil {
-		return nil, err
+func getIssueUrl(updatedAt, labels string) string {
+	// Fetch issues that have been updated on or after updatedAt
+	baseUrl := os.Getenv("BASE_URL") + "/issues?scope=all"
+
+	updatedAtFilter := ""
+	if updatedAt != "" {
+		updatedAtFilter = fmt.Sprintf("&updated_after=%s", updatedAt)
 	}
-
-	filteredIssues := []Issue{}
-	for _, issue := range issues {
-		if !issue.UpdatedAt.Before(t) {
-			filteredIssues = append(filteredIssues, issue)
-		}
-	}
-
-	return filteredIssues, nil
-}
-
-func getIssueUrl(labels string) string {
-	// Fetch issues older than that
-	baseUrl := os.Getenv("BASE_URL") + "/issues"
 
 	labelsFilter := ""
 	if labels != "" {
-		labelsFilter = fmt.Sprintf("?labels=%s", labels)
+		labelsFilter = fmt.Sprintf("&labels=%s", labels)
 	}
 
-	url := fmt.Sprintf("%s%s", baseUrl, labelsFilter)
+	url := fmt.Sprintf("%s%s%s", baseUrl, labelsFilter, updatedAtFilter)
 
 	return url
 }
