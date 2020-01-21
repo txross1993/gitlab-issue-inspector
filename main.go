@@ -8,6 +8,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/txross1993/gitlab-issue-inspector/issues"
+	"github.com/txross1993/gitlab-issue-inspector/sink"
 )
 
 func main() {
@@ -19,8 +20,18 @@ func main() {
 
 	client := &http.Client{}
 
-	// TODO: Fetch the max updatedAt time stored in DB
-	updatedAt := "2020-01-21T00:22:36.156Z"
+	// Fetch the max updatedAt time stored in DB
+	sinkClient, err := sink.NewSinkClient()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	updatedAt, err := sinkClient.GetLastUpdatedTime()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(updatedAt)
 
 	// Fetch issues provided labels
 	got, err := issues.Fetch(client, *labels, updatedAt)

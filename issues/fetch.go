@@ -12,6 +12,7 @@ import (
 type GitLabUser struct {
 	ID       int    `json:"id"`
 	Username string `json:"username"`
+	Name     string `json:"name"`
 }
 
 type TimeStats struct {
@@ -25,7 +26,8 @@ type TaskCompletionStatus struct {
 }
 
 type Issue struct {
-	ID                   int                  `json:"iid"`
+	ID                   int                  `json:"id"`
+	IID                  int                  `json:"iid"`
 	Author               GitLabUser           `json:"author"`
 	Assignees            []GitLabUser         `json:"assignees"`
 	State                string               `json:"state"`
