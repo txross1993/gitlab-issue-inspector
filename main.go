@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/joho/godotenv"
-	"github.com/txross1993/gitlab-issue-inspector/issues"
+	"github.com/txross1993/gitlab-issue-inspector/gitlab"
 	"github.com/txross1993/gitlab-issue-inspector/sink"
 )
 
@@ -34,13 +34,13 @@ func main() {
 	fmt.Println(updatedAt)
 
 	// Fetch issues provided labels
-	got, err := issues.Fetch(client, *labels, updatedAt)
+	issues, err := gitlab.FetchIssues(client, *labels, updatedAt)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(got)
+	fmt.Println(issues)
 
 }
 

@@ -1,6 +1,6 @@
 -- Assignees
-CREATE TABLE IF NOT EXISTS `gitlab_tracking.Assignees` (
-    id INT64 NOT NULL, -- Assignee ID in gitlab
+CREATE TABLE IF NOT EXISTS `gitlab_tracking.Members` (
+    id INT64 NOT NULL, -- Member ID in gitlab
     `name` STRING, -- display name in GitLab
     username STRING, -- username in GitLab
     avatar STRING -- URL to avatar.png in GitLab
@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS `gitlab_tracking.Projects` (
     id INT64 NOT NULL, -- Project ID in GitLab
     `name` STRING, -- Human readable name of a project
     link STRING, -- URL of the project
-    assignees ARRAY<INT64> -- Assignee IDs 
+    members ARRAY<INT64> -- Member IDs 
 )
 
 -- Issues contains a catalog of known issues
