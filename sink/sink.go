@@ -6,26 +6,24 @@ import (
 	"os"
 	"time"
 
-	bq "cloud.google.com/go/bigquery"
-	"google.golang.org/api/iterator"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres" //postgres driver
 )
 
 type Sink struct {
-	client *bq.Client
+	client *gorm.DB
 }
 
-func NewSinkClient() (*Sink, error) {
-	ctx, cancel := cancelIn(10)
-	client, err := bq.NewClient(ctx, os.Getenv("GCP_PROJECT"))
+func NewSinkClient(host, port, user, dbname, password string) (*Sink, error) {
+	connectionStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s",
+		host,
+		port,
+		user,
+		password,
+		sslMode)
+	db, err := gorm.Open("postgres", connectionStr)
 
-	if err != nil {
-		cancel()
-		return nil, err
-	}
-
-	return &Sink{
-		client: client,
-	}, nil
+	return &Sink{client: db}, err
 }
 
 func (s *Sink) GetLastUpdatedTime() (string, error) {
@@ -34,10 +32,10 @@ func (s *Sink) GetLastUpdatedTime() (string, error) {
 	clientQuery := s.configure(q)
 
 	ctx, cancel := cancelIn(10)
+	defer cancel()
 	j, err := clientQuery.Read(ctx)
 
 	if err != nil {
-		cancel()
 		return "", err
 	}
 
@@ -65,16 +63,6 @@ func (s *Sink) GetLastUpdatedTime() (string, error) {
 
 	return updatedAt.Format(time.RFC3339), nil
 }
-
-func (s *Sink) configure(query string) *bq.Query {
-	q := s.client.Query(query)
-	q.QueryConfig.DefaultProjectID = os.Getenv("GCP_PROJECT")
-	q.QueryConfig.DefaultDatasetID = os.Getenv("DATASET_ID")
-
-	return q
-}
-
-func (s *Sink) Save(table string) {}
 
 func cancelIn(seconds int) (context.Context, context.CancelFunc) {
 	return context.WithDeadline(context.Background(), time.Now().Add(time.Duration(seconds)*time.Second))
