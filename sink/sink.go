@@ -3,7 +3,6 @@ package sink
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -26,42 +25,79 @@ func NewSinkClient(host, port, user, dbname, password string) (*Sink, error) {
 	return &Sink{client: db}, err
 }
 
+func (s *Sink) Initialize() error {
+	if err := s.autoMigrate(); err != nil {
+		return err
+	}
+
+	if err := s.setForeignKeys(); err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
 func (s *Sink) GetLastUpdatedTime() (string, error) {
-	q := fmt.Sprintf("SELECT MAX(timestamp) FROM %s;", os.Getenv("LOGGING_TABLE"))
-
-	clientQuery := s.configure(q)
-
-	ctx, cancel := cancelIn(10)
-	defer cancel()
-	j, err := clientQuery.Read(ctx)
+	rows, err := db.Table("issues").Select("max(updated_at) as max")
+	defer rows.Close()
 
 	if err != nil {
 		return "", err
 	}
 
-	var defaultTime time.Time
-	var updatedAt time.Time
+	var max time.Time
+	for rows.Next() {
+		rows.Scan(&max)
+	}
 
-	for {
-		var row []bq.Value
-		err := j.Next(&row)
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return "", err
-		}
-		if len(row) > 0 {
-			updatedAt = row[0].(time.Time)
-			break
+	return max.Format(time.RFC3339)
+}
+
+func (s *Sink) Read()   {}
+func (s *Sink) Update() {}
+func (s *Sink) Create() {}
+
+// Relation interface provides the abstraction of fetching a data model's foreign key relationships
+type Relation interface {
+	// GetForeignKeyMapping() returns a map of the table's key to the reference key of the foreign table
+	// i.e. For Note table,
+	// Notes(issue_id) is mapped to Issues(id)
+	// issue_id:issues(id)
+	GetForeignKeyMapping() map[string]string
+}
+
+func (s *Sink) autoMigrate() error {
+	models := data.GetModels()
+
+	for _, m := range models {
+		errs := s.DB.AutoMigrate(m).GetErrors()
+		if len(errs) > 0 {
+			for _, err := range errs {
+				log.Error(err)
+			}
+			return fmt.Errorf("Unable to migrate schemas")
 		}
 	}
 
-	if updatedAt == defaultTime {
-		return "", nil
+	return nil
+}
+
+func setForeignKeys(models []interface{}) error {
+	for _, m := range models {
+		if m.(Relation) {
+			fkMaps := m.GetForeignKeyMapping()
+			// Create FK relationships
+			for fk, mappedReference := range fkMaps {
+				if err := s.DB.Model(m).AddForeignKey(fk, mappedReference, "CASCADE", "CASCADE").Err; err != nil {
+					return err
+				}
+
+			}
+		}
+
 	}
 
-	return updatedAt.Format(time.RFC3339), nil
 }
 
 func cancelIn(seconds int) (context.Context, context.CancelFunc) {

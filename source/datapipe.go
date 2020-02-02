@@ -4,16 +4,18 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	data "github.com/txross1993/gitlab-issue-inspector/data"
 )
 
 // Uses fan-out concurrency pattern to fetch all projects and their associated users
 
 // FetchProjects concurrently retrieves all project data provided a list of project IDs
 // and returns read-only channels of Project and errors
-func FetchProjects(client *http.Client, projectIDs []int) (<-chan Project, <-chan error) {
+func FetchProjects(client *http.Client, projectIDs []int) (<-chan data.Project, <-chan error) {
 	var wg sync.WaitGroup
 	wg.Add(len(projectIDs))
-	out := make(chan Project)
+	out := make(chan data.Project)
 	errs := make(chan error)
 
 	for _, projectID := range projectIDs {
@@ -38,10 +40,10 @@ func FetchProjects(client *http.Client, projectIDs []int) (<-chan Project, <-cha
 
 // FetchUsers concurrently retrieves all user data provided a list of user IDs
 // and returns read-only channels of User and errors
-func FetchUsers(client *http.Client, userIDs []int) (<-chan User, <-chan error) {
+func FetchUsers(client *http.Client, userIDs []int) (<-chan data.User, <-chan error) {
 	var wg sync.WaitGroup
 	wg.Add(len(userIDs))
-	out := make(chan User)
+	out := make(chan data.User)
 	errs := make(chan error)
 
 	for _, userID := range userIDs {
@@ -69,9 +71,9 @@ type IssueNote struct {
 	IssueIID  int
 }
 
-func FetchNotes(client *http.Client, issueNotes []IssueNote, updatedAt string) (<-chan []Note, <-chan error) {
+func FetchNotes(client *http.Client, issueNotes []IssueNote, updatedAt string) (<-chan []data.Note, <-chan error) {
 	var wg sync.WaitGroup
-	out := make(chan []Note)
+	out := make(chan []data.Note)
 	errs := make(chan error)
 
 	wg.Add(len(issueNotes))
@@ -99,13 +101,13 @@ func FetchNotes(client *http.Client, issueNotes []IssueNote, updatedAt string) (
 	return out, errs
 }
 
-func filterNotesByUpdatedAt(notes []Note, updatedAt string) ([]Note, error) {
+func filterNotesByUpdatedAt(notes []data.Note, updatedAt string) ([]data.Note, error) {
 	updatedAtTime, err := time.Parse(time.RFC3339, updatedAt)
 	if err != nil {
 		return nil, err
 	}
 
-	var filteredNotes []Note
+	var filteredNotes []data.Note
 	for _, note := range notes {
 		if note.UpdatedAt.Before(updatedAtTime) {
 			break
