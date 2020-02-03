@@ -24,6 +24,10 @@ type User struct {
 	Link     string `json:"web_url"`    // Link to a user's profile
 }
 
+func (u *User) ToString() string {
+	return "users"
+}
+
 // TimeStat represents the nested structure of an Issue related to time estimation and time spent toward and issue
 type TimeStat struct {
 	TimeEstimate   int `json:"time_estimate" gorm:"-"`
@@ -42,9 +46,9 @@ type Issue struct {
 	IID                int                `json:"iid" sql:"index"`       // ID of issue within the project
 	AuthorID           int                `json:"-"`
 	Author             User               `json:"author" gorm:"foreignkey:AuthorID"` // Issue creator
-	UserIDs            []int              `json:"-" gorm:"type:INT[][]"`             // Must be generated internally, not part of JSON response
+	UserIDs            []int              `json:"-" gorm:"type:INT[]"`               // Must be generated internally, not part of JSON response
 	Users              []User             `json:"assignees" gorm:"-"`                // Assigned users
-	State              string             `json:"state"`                             // Open, Closed
+	State              string             `json:"state" gorm:"type:VARCHAR(10)"`     // Open, Closed
 	ProjectID          int                `json:"project_id"`                        // Glboal project ID
 	Project            Project            `json:"-" gorm:"foreignkey:ProjectID"`
 	CreatedAt          time.Time          `json:"created_at"`
@@ -58,7 +62,11 @@ type Issue struct {
 	TimeEstimate       int                `json:"-"`
 	TotalTimeSpent     int                `json:"-"`
 	Link               string             `json:"web_url"`
-	Labels             []string           `json:"labels" gorm:"type:TEXT[][]"`
+	Labels             []string           `json:"labels" gorm:"type:TEXT[]"`
+}
+
+func (i *Issue) ToString() string {
+	return "issues"
 }
 
 func (i *Issue) GetForeignKeyMapping() map[string]string {
@@ -78,7 +86,11 @@ type Project struct {
 	Link           string    `json:"web_url"`
 	CreatedAt      time.Time `json:"created_at"`
 	LastActivityAt time.Time `json:"last_activity_at"`
-	UserIDs        []int     `json:"-"` // Must be generated internally, not part of JSON response
+	UserIDs        []int     `json:"-" gorm:"type:INT[]"` // Must be generated internally, not part of JSON response
+}
+
+func (p *Project) ToString() string {
+	return "projects"
 }
 
 // Notes are the activities that occurred on an issue
@@ -89,6 +101,10 @@ type Note struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Body      string    `json:"body"`
+}
+
+func (n *Note) ToString() string {
+	return "notes"
 }
 
 func (n *Note) GetForeignKeyMapping() map[string]string {

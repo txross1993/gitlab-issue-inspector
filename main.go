@@ -1,46 +1,56 @@
 package main
 
 import (
-	"flag"
-	"fmt"
 	"log"
-	"net/http"
+	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/txross1993/gitlab-issue-inspector/gitlab"
-	"github.com/txross1993/gitlab-issue-inspector/sink"
+	db "github.com/txross1993/gitlab-issue-inspector/db"
 )
 
 func main() {
-	labels := flag.String("labels", "", "Comma-separated list of GitLab issue labels")
+
+	//labels := flag.String("labels", "", "Comma-separated list of GitLab issue labels")
 	// flag options
-	flag.Parse()
+	//flag.Parse()
 
 	godotenv.Load()
 
-	client := &http.Client{}
-
 	// Fetch the max updatedAt time stored in DB
-	sinkClient, err := sink.NewSinkClient()
+	host := "127.0.0.1"
+	port := "5432"
+	user := os.Getenv("POSTGRES_USER")
+	dbName := "default"
+	pass := os.Getenv("POSTGRES_PASSWORD")
+	sslMode := "disable"
+
+	dbClient, err := db.NewDBClient(host, port, user, dbName, pass, sslMode)
+
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	updatedAt, err := sinkClient.GetLastUpdatedTime()
-	if err != nil {
+	if err := dbClient.Initialize(); err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(updatedAt)
+	//client := &http.Client{}
+
+	// updatedAt, err := sinkClient.GetLastUpdatedTime()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	//fmt.Println(updatedAt)
 
 	// Fetch issues provided labels
-	issues, err := gitlab.FetchIssues(client, *labels, updatedAt)
+	// issues, err := gitlab.FetchIssues(client, *labels, updatedAt)
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	fmt.Println(issues)
+	// fmt.Println(issues)
 
 }
 
