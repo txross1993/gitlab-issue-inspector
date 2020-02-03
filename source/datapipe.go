@@ -8,11 +8,11 @@ import (
 	data "github.com/txross1993/gitlab-issue-inspector/data"
 )
 
-// Uses fan-out concurrency pattern to fetch all projects and their associated users
+// Uses fan-out concurrency pattern to get all projects and their associated users
 
-// FetchProjects concurrently retrieves all project data provided a list of project IDs
+// GetProjects concurrently retrieves all project data provided a list of project IDs
 // and returns read-only channels of Project and errors
-func FetchProjects(client *http.Client, projectIDs []int) (<-chan data.Project, <-chan error) {
+func GetProjects(client *http.Client, projectIDs []int) (<-chan data.Project, <-chan error) {
 	var wg sync.WaitGroup
 	wg.Add(len(projectIDs))
 	out := make(chan data.Project)
@@ -20,7 +20,7 @@ func FetchProjects(client *http.Client, projectIDs []int) (<-chan data.Project, 
 
 	for _, projectID := range projectIDs {
 		go func(projectID int) {
-			project, err := fetchProject(client, projectID)
+			project, err := getProject(client, projectID)
 			if err != nil {
 				errs <- err
 			}
@@ -38,9 +38,9 @@ func FetchProjects(client *http.Client, projectIDs []int) (<-chan data.Project, 
 	return out, errs
 }
 
-// FetchUsers concurrently retrieves all user data provided a list of user IDs
+// GetUsers concurrently retrieves all user data provided a list of user IDs
 // and returns read-only channels of User and errors
-func FetchUsers(client *http.Client, userIDs []int) (<-chan data.User, <-chan error) {
+func GetUsers(client *http.Client, userIDs []int) (<-chan data.User, <-chan error) {
 	var wg sync.WaitGroup
 	wg.Add(len(userIDs))
 	out := make(chan data.User)
@@ -48,7 +48,7 @@ func FetchUsers(client *http.Client, userIDs []int) (<-chan data.User, <-chan er
 
 	for _, userID := range userIDs {
 		go func(userID int) {
-			user, err := fetchUser(client, userID)
+			user, err := getUser(client, userID)
 			if err != nil {
 				errs <- err
 			}
@@ -71,7 +71,7 @@ type IssueNote struct {
 	IssueIID  int
 }
 
-func FetchNotes(client *http.Client, issueNotes []IssueNote, updatedAt string) (<-chan []data.Note, <-chan error) {
+func GetNotes(client *http.Client, issueNotes []IssueNote, updatedAt string) (<-chan []data.Note, <-chan error) {
 	var wg sync.WaitGroup
 	out := make(chan []data.Note)
 	errs := make(chan error)
@@ -80,7 +80,7 @@ func FetchNotes(client *http.Client, issueNotes []IssueNote, updatedAt string) (
 
 	for _, issue := range issueNotes {
 		go func(issue IssueNote) {
-			notes, err := fetchNotes(issue.ProjectID, issue.IssueIID, client)
+			notes, err := getNotes(issue.ProjectID, issue.IssueIID, client)
 			if err != nil {
 				errs <- err
 			}

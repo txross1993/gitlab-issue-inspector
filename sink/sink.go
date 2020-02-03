@@ -54,10 +54,6 @@ func (s *Sink) GetLastUpdatedTime() (string, error) {
 	return max.Format(time.RFC3339)
 }
 
-func (s *Sink) Read()   {}
-func (s *Sink) Update() {}
-func (s *Sink) Create() {}
-
 // Relation interface provides the abstraction of fetching a data model's foreign key relationships
 type Relation interface {
 	// GetForeignKeyMapping() returns a map of the table's key to the reference key of the foreign table
@@ -85,8 +81,8 @@ func (s *Sink) autoMigrate() error {
 
 func setForeignKeys(models []interface{}) error {
 	for _, m := range models {
-		if m.(Relation) {
-			fkMaps := m.GetForeignKeyMapping()
+		if _, ok := m.(Relation); ok {
+			fkMaps := m.(Relation).GetForeignKeyMapping()
 			// Create FK relationships
 			for fk, mappedReference := range fkMaps {
 				if err := s.DB.Model(m).AddForeignKey(fk, mappedReference, "CASCADE", "CASCADE").Err; err != nil {

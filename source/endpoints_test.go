@@ -2,15 +2,24 @@ package source
 
 import (
 	"fmt"
-	"os"
+	"net/http"
 	"testing"
 )
 
 // RoundTripper testing functionality: http://hassansin.github.io/Unit-Testing-http-client-in-Go
+type RoundTripFunc func(req *http.Request) *http.Response
+
+func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req), nil
+}
+
+func NewTestClient(fn RoundTripFunc) *http.Client {
+	return &http.Client{
+		Transport: RoundTripFunc(fn),
+	}
+}
 
 func TestGetIssuesUrl(t *testing.T) {
-	baseUrl := "https://gitlab.example.com/api/v4"
-	os.Setenv("BASE_URL", baseUrl)
 
 	tests := map[string]struct {
 		updatedAt string
